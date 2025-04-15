@@ -68,6 +68,7 @@ code {
 }
 
 .next-fruit {
+  pointer-events: auto;
   background-color: rgba(255, 255, 255, 0.9);
   padding: 12px;
   border-radius: 10px;
@@ -84,19 +85,31 @@ code {
   font-weight: bold;
   color: #333;
   font-size: 16px;
+  text-shadow: 1px 1px 1px rgba(255, 255, 255, 0.5);
 }
 
 .next-fruit-preview {
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+  animation: pulse 2s infinite;
   display: flex;
   justify-content: center;
   align-items: center;
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
   border-radius: 50%;
   transition: transform 0.2s ease;
-  animation: pulse 2s infinite;
   overflow: hidden;
   image-rendering: -webkit-optimize-contrast;
   image-rendering: crisp-edges;
+  transform-origin: center center;
+}
+
+/* 增强水果的条纹效果 */
+.next-fruit-preview div[style*="rotate"] {
+  box-shadow: 0 0 3px rgba(0, 0, 0, 0.2);
+}
+
+/* 增强水果种子的立体感 */
+.next-fruit-preview div div[style*="borderRadius: '50%'"] {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 .next-fruit-preview canvas {
