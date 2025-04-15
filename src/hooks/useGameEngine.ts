@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import Matter from 'matter-js';
-import { FruitType, Fruit, FRUIT_PROPERTIES } from '../types';
+import { FruitType, Fruit, FRUIT_PROPERTIES, FruitProps } from '../types';
 
 // 生成唯一ID
 const generateId = () => Math.random().toString(36).substring(2, 9);
@@ -236,9 +236,15 @@ const useGameEngine = () => {
         frictionAir: 0.001, // 减少空气阻力
         label: `fruit_${type}`,
         render: {
+          // 使用自定义渲染函数，绘制更逼真的水果
+          sprite: {
+            texture: createFruitTexture(props),
+            xScale: props.radius * 2 / 200, // 假设贴图尺寸为200x200
+            yScale: props.radius * 2 / 200
+          },
           fillStyle: props.color,
-          strokeStyle: '#000',
-          lineWidth: 1,
+          strokeStyle: props.borderColor,
+          lineWidth: 2,
           visible: true  // 确保可见性为true
         },
         collisionFilter: {
@@ -280,12 +286,129 @@ const useGameEngine = () => {
     }
   };
   
+  // 创建水果贴图
+  const createFruitTexture = (props: FruitProps): string => {
+    try {
+      // 创建一个临时canvas来绘制水果
+      const canvas = document.createElement('canvas');
+      canvas.width = 200;
+      canvas.height = 200;
+      const ctx = canvas.getContext('2d');
+      
+      if (!ctx) {
+        console.error("无法获取canvas上下文");
+        return '';
+      }
+      
+      // 清除画布
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // 计算中心点和半径
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      const radius = (canvas.width / 2) - 10; // 留一些边距
+      
+      // 绘制水果主体（外部轮廓）
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+      ctx.closePath();
+      
+      // 创建渐变填充
+      if (props.gradientColors && props.gradientColors.length > 1) {
+        const gradient = ctx.createRadialGradient(
+          centerX, centerY, 0,
+          centerX, centerY, radius
+        );
+        props.gradientColors.forEach((color: string, index: number) => {
+          gradient.addColorStop(index / (props.gradientColors!.length - 1), color);
+        });
+        ctx.fillStyle = gradient;
+      } else {
+        ctx.fillStyle = props.color;
+      }
+      
+      ctx.fill();
+      
+      // 绘制边框
+      ctx.strokeStyle = props.borderColor;
+      ctx.lineWidth = radius * 0.05;
+      ctx.stroke();
+      
+      // 如果有条纹，绘制条纹
+      if (props.hasStripes && props.stripeColor) {
+        const stripesCount = 6; // 条纹数量
+        ctx.strokeStyle = props.stripeColor;
+        ctx.lineWidth = radius * 0.04;
+        
+        for (let i = 0; i < stripesCount; i++) {
+          const angle = (Math.PI / stripesCount) * i;
+          ctx.beginPath();
+          ctx.moveTo(centerX, centerY);
+          ctx.lineTo(
+            centerX + radius * Math.cos(angle),
+            centerY + radius * Math.sin(angle)
+          );
+          ctx.stroke();
+        }
+      }
+      
+      // 绘制切开的水果横截面
+      // 为了简化，我们只在圆形中间绘制一个小圆代表"横截面"
+      const innerRadius = radius * 0.7;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, innerRadius, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.fillStyle = props.pulpColor;
+      ctx.fill();
+      
+      // 如果有种子图案，绘制种子
+      if (props.hasSeedPattern) {
+        const seedsCount = 8;
+        const seedRadius = radius * 0.05;
+        ctx.fillStyle = props.seedColor;
+        
+        for (let i = 0; i < seedsCount; i++) {
+          const angle = (Math.PI * 2 / seedsCount) * i;
+          const distance = innerRadius * 0.5;
+          
+          ctx.beginPath();
+          ctx.ellipse(
+            centerX + distance * Math.cos(angle),
+            centerY + distance * Math.sin(angle),
+            seedRadius * 2,
+            seedRadius,
+            angle,
+            0, Math.PI * 2
+          );
+          ctx.fill();
+        }
+      }
+      
+      // 转换为dataURL
+      return canvas.toDataURL();
+    } catch (e) {
+      console.error("创建水果贴图时出错:", e);
+      return '';
+    }
+  };
+  
   // 创建下一个水果
   const createNextFruit = () => {
-    const type = getRandomSmallFruitType();
-    setNextFruitType(type);
-    const nextFruit = createFruit(type, GAME_WIDTH / 2, 50, true);
-    nextFruitRef.current = nextFruit;
+    try {
+      const type = getRandomSmallFruitType();
+      console.log(`创建下一个水果，类型: ${type}`);
+      
+      // 更新状态，触发UI重新渲染
+      setNextFruitType(type);
+      
+      // 在物理引擎中创建一个不可见的下一个水果（仅用于内部状态）
+      const nextFruit = createFruit(type, GAME_WIDTH / 2, 50, true);
+      nextFruitRef.current = nextFruit;
+      
+      console.log(`下一个水果已创建: ${type}, ID=${nextFruit?.id || 'unknown'}`);
+    } catch (error) {
+      console.error("创建下一个水果时出错:", error);
+    }
   };
   
   // 获取随机小水果类型（通常游戏中只会掉落前3种水果）
